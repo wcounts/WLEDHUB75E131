@@ -9,6 +9,53 @@
 #include "bus_wrapper.h"
 #include "bus_manager.h"
 
+#include <ESP32-HUB75-MatrixPanel-I2S-DMA.h>
+#include "wled.h"
+
+#define R1_PIN 21
+#define G1_PIN 19
+#define B1_PIN 4
+#define R2_PIN 5
+#define G2_PIN 6
+#define B2_PIN 7
+#define A_PIN 15
+#define B_PIN 16
+#define C_PIN 17
+#define D_PIN 18
+#define E_PIN 10
+#define LAT_PIN 12
+#define OE_PIN 13
+#define CLK_PIN 20
+
+#ifdef WLED_ENABLE_HUB75MATRIX
+HUB75_I2S_CFG::i2s_pins _pins = {R1_PIN, G1_PIN, B1_PIN, R2_PIN, G2_PIN, B2_PIN,
+                                 A_PIN, B_PIN, C_PIN, D_PIN, E_PIN,
+                                 LAT_PIN, OE_PIN, CLK_PIN};
+
+HUB75_I2S_CFG mxconfig(64, 64, 1, _pins, HUB75_I2S_CFG::FM6124, false, HUB75_I2S_CFG::HZ_20M);
+MatrixPanel_I2S_DMA *matrix = nullptr;
+
+void BusManager::setupMatrix() {
+  if (matrix == nullptr) {
+    matrix = new MatrixPanel_I2S_DMA(mxconfig);
+    matrix->begin();
+    matrix->setBrightness8(100);
+  }
+}
+
+void BusManager::updateMatrix(uint8_t *data, uint16_t len) {
+  if (matrix && len >= 12288) {
+    for (uint16_t y = 0; y < 64; y++) {
+      for (uint16_t x = 0; x < 64; x++) {
+        uint16_t idx = (y * 64 + x) * 3;
+        matrix->drawPixelRGB888(x, y, data[idx], data[idx + 1], data[idx + 2]);
+      }
+    }
+  }
+}
+#endif
+
+
 // WLEDMM functions to get/set bits in an array - based on functions created by Brandon for GOL
 //  toDo : make this a class that's completely defined in a header file
 inline bool getBitFromArray(const uint8_t* byteArray, size_t position) { // get bit value
