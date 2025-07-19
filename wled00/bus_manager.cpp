@@ -8,7 +8,7 @@
 #include "pin_manager.h"
 #include "bus_wrapper.h"
 #include "bus_manager.h"
-
+#include "src/dependencies/e131/ESPAsyncE131.h"
 #include <ESP32-HUB75-MatrixPanel-I2S-DMA.h>
 #include "wled.h"
 
