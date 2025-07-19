@@ -11,6 +11,8 @@
  * New usermods should use usermod.cpp instead.
  */
 
+#include "src/dependencies/e131/ESPAsyncE131.h"
+
 #ifdef WLED_DEBUG_HEAP
 void heap_caps_alloc_failed_hook(size_t requested_size, uint32_t caps, const char *function_name)
 {
@@ -67,14 +69,46 @@ unsigned long lps = 0; // loops per second
 
 void setup() __attribute__((used)); // needed for -flto
 void setup() {
+
+  WiFi.mode(WIFI_AP);
+  WiFi.softAP("MatrixAP", "password123");
+  IPAddress myIP = WiFi.softAPIP(); // 192.168.4.1
+  Serial.begin(115200);
+  Serial.print("AP IP: ");
+  Serial.println(myIP);
+  esp_wifi_set_ps(WIFI_PS_NONE);
+  WiFiUDP::setBufferSize(2048);
+
+  // Initialize E1.31 multicast for 32 universes (1 to 32)
+  e131.beginMulticast(WiFi.localIP(), 1, 32); // Start from universe 1, 32
+  
   #ifdef WLED_DEBUG_HEAP
   esp_err_t error = heap_caps_register_failed_alloc_callback(heap_caps_alloc_failed_hook);
   #endif
   WLED::instance().setup();
+
 }
 
 void loop() __attribute__((used)); // needed for -flto
 void loop() {
+
+if (e131.parsePacket()) {
+    uint16_t universe = e131.universe;
+    uint8_t* data = e131.data;
+    uint16_t length = e131.dataLength;
+    // Process data for your 64x64 matrix (e.g., map to LED buffer)
+    // Example: Assuming a global LED buffer (strip->setPixelColor)
+    for (uint16_t i = 0; i < length / 3 && i < 4096; i++) {
+      uint8_t r = data[i * 3];
+      uint8_t g = data[i * 3 + 1];
+      uint8_t b = data[i * 3 + 2];
+      // Map to your matrix (adjust indexing)
+      matrix->setPixelColor(i, r, g, b);
+    }
+    strip->show();
+  }
+
+  
   //WLEDMM show loops per second
 #ifdef WLED_DEBUG
   loopCounter++;
